@@ -8,7 +8,7 @@ const impressionCount = document.getElementById('impressionCount');
 const reactionCount = document.getElementById('reactionCount');
 const commentCount = document.getElementById('commentCount');
 
-// Utility function to format date
+// Function to format date
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString();
@@ -26,14 +26,14 @@ function updateStats(logs) {
     commentCount.textContent = stats.comment || 0;
 }
 
-// Function to get type-specific styling
-function getTypeStyle(type) {
-    const styles = {
-        'IMPRESSION': 'bg-blue-100 text-blue-800',
-        'REACTION': 'bg-green-100 text-green-800',
-        'COMMENT': 'bg-purple-100 text-purple-800'
+// Function to get badge class based on type
+function getBadgeClass(type) {
+    const classes = {
+        'IMPRESSION': 'badge-impression',
+        'REACTION': 'badge-reaction',
+        'COMMENT': 'badge-comment'
     };
-    return styles[type] || 'bg-gray-100 text-gray-800';
+    return classes[type] || '';
 }
 
 // Function to render logs in the table
@@ -48,18 +48,18 @@ function renderLogs(logs) {
     logTableBody.innerHTML = logs
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
         .map(log => {
-            const typeClass = getTypeStyle(log.type);
+            const badgeClass = getBadgeClass(log.type);
             return `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 text-xs font-medium rounded-full ${typeClass}">
+                    <td>
+                        <span class="badge ${badgeClass}">
                             ${log.type}
                         </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td>
                         ${formatDate(log.timestamp)}
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">
+                    <td>
                         ${formatLogDetails(log)}
                     </td>
                 </tr>
@@ -73,15 +73,20 @@ function renderLogs(logs) {
 // Function to format log details based on type
 function formatLogDetails(log) {
     const details = log.details || {};
+    const postId = details.postId || 'unknown';
+    
     switch (log.type) {
         case 'IMPRESSION':
-            return `Post ${details.postId} viewed`;
+            return `Post ${postId} viewed`;
         case 'REACTION':
-            return `Reacted to post ${details.postId} with ${details.reactionType}`;
+            return `Reacted to post ${postId}${details.reactionType ? ` with ${details.reactionType}` : ''}`;
         case 'COMMENT':
-            return `Commented on post ${details.postId}: "${details.commentText.substring(0, 50)}${details.commentText.length > 50 ? '...' : ''}"`;
+            const commentText = details.commentText || '';
+            const truncatedText = commentText.length > 50 ? 
+                `${commentText.substring(0, 47)}...` : commentText;
+            return `Commented on post ${postId}: "${truncatedText}"`;
         default:
-            return JSON.stringify(details);
+            return `Action on post ${postId}`;
     }
 }
 
@@ -91,9 +96,9 @@ function convertToCSV(logs) {
     const rows = logs.map(log => [
         log.type,
         log.timestamp,
-        log.details.postId || '',
-        JSON.stringify(log.details).replace(/"/g, '""'),
-        log.details.url || ''
+        log.details?.postId || '',
+        JSON.stringify(log.details || {}).replace(/"/g, '""'),
+        log.details?.url || ''
     ]);
 
     return [headers, ...rows]
@@ -130,9 +135,13 @@ function loadLogs() {
 document.addEventListener('DOMContentLoaded', loadLogs);
 
 refreshBtn.addEventListener('click', () => {
-    refreshBtn.classList.add('animate-spin');
+    refreshBtn.style.transform = 'rotate(360deg)';
+    refreshBtn.style.transition = 'transform 1s';
     loadLogs();
-    setTimeout(() => refreshBtn.classList.remove('animate-spin'), 1000);
+    setTimeout(() => {
+        refreshBtn.style.transform = '';
+        refreshBtn.style.transition = '';
+    }, 1000);
 });
 
 clearBtn.addEventListener('click', () => {
