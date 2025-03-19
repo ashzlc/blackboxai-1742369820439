@@ -28,17 +28,33 @@ function extractPostId(element) {
     return 'unknown_post_id';
 }
 
+// Function to extract profile ID from URL
+function extractProfileId() {
+    const urlMatch = window.location.href.match(/linkedin\.com\/company\/([^/]+)/);
+    return urlMatch ? urlMatch[1] : null;
+}
+
 // Function to send events to background script
 function sendEvent(type, data) {
     try {
+        const profileId = extractProfileId();
         chrome.runtime.sendMessage({
             type: type,
             data: {
                 ...data,
                 url: window.location.href,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                profileId: profileId
             }
         });
+
+        // If profile ID changes, notify background script
+        if (profileId) {
+            chrome.runtime.sendMessage({
+                type: 'SET_PROFILE',
+                profileId: profileId
+            });
+        }
     } catch (error) {
         console.error('LinkedIn Activity Logger: Error sending event:', error);
     }
