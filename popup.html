@@ -3,81 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <title>LinkedIn Activity Logger</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Base styles */
         body {
             width: 600px;
             max-height: 600px;
             overflow-y: auto;
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+
+        /* Header styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 4px 0 0 0;
+        }
+
+        /* Button styles */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-danger {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            margin-left: 8px;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .stat-card.impressions {
+            background-color: #dbeafe;
+        }
+
+        .stat-card.reactions {
+            background-color: #dcfce7;
+        }
+
+        .stat-card.comments {
+            background-color: #f3e8ff;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* Table styles */
+        .table-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-impression {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-reaction {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-comment {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        /* No data message */
+        .no-data {
+            text-align: center;
+            padding: 32px;
+            color: #6b7280;
+        }
+
+        .no-data-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Icons */
+        .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Download button container */
+        .download-container {
+            margin-bottom: 24px;
+        }
+
+        .download-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Utility classes */
+        .hidden {
+            display: none;
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="p-4">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">LinkedIn Activity Logger</h1>
-                <p class="text-sm text-gray-600">Track your LinkedIn interactions</p>
-            </div>
-            <div class="flex gap-2">
-                <button id="refreshBtn" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-                <button id="clearBtn" class="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+<body>
+    <div class="header">
+        <div>
+            <h1 class="title">LinkedIn Activity Logger</h1>
+            <p class="subtitle">Track your LinkedIn interactions</p>
         </div>
+        <div>
+            <button id="refreshBtn" class="btn btn-icon" title="Refresh">↻</button>
+            <button id="clearBtn" class="btn btn-icon btn-danger" title="Clear logs">🗑</button>
+        </div>
+    </div>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
-            <div class="bg-blue-50 p-4 rounded-lg">
-                <h3 class="text-blue-700 text-sm font-semibold">Impressions</h3>
-                <p id="impressionCount" class="text-2xl font-bold text-blue-800">0</p>
-            </div>
-            <div class="bg-green-50 p-4 rounded-lg">
-                <h3 class="text-green-700 text-sm font-semibold">Reactions</h3>
-                <p id="reactionCount" class="text-2xl font-bold text-green-800">0</p>
-            </div>
-            <div class="bg-purple-50 p-4 rounded-lg">
-                <h3 class="text-purple-700 text-sm font-semibold">Comments</h3>
-                <p id="commentCount" class="text-2xl font-bold text-purple-800">0</p>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-card impressions">
+            <div class="stat-label">Impressions</div>
+            <p id="impressionCount" class="stat-value">0</p>
         </div>
+        <div class="stat-card reactions">
+            <div class="stat-label">Reactions</div>
+            <p id="reactionCount" class="stat-value">0</p>
+        </div>
+        <div class="stat-card comments">
+            <div class="stat-label">Comments</div>
+            <p id="commentCount" class="stat-value">0</p>
+        </div>
+    </div>
 
-        <!-- Download Button -->
-        <div class="mb-6">
-            <button id="downloadBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2">
-                <i class="fas fa-download"></i>
-                Download CSV
-            </button>
-        </div>
+    <div class="download-container">
+        <button id="downloadBtn" class="btn btn-primary download-btn">
+            ⬇️ Download CSV
+        </button>
+    </div>
 
-        <!-- Activity Log Table -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logTableBody" class="bg-white divide-y divide-gray-200">
-                        <!-- Logs will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Time</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody id="logTableBody">
+                <!-- Logs will be inserted here -->
+            </tbody>
+        </table>
+    </div>
 
-        <!-- No Data Message -->
-        <div id="noDataMessage" class="hidden text-center py-8 text-gray-500">
-            <i class="fas fa-inbox text-4xl mb-2"></i>
-            <p>No activity logs yet</p>
-        </div>
+    <div id="noDataMessage" class="no-data hidden">
+        <div class="no-data-icon">📊</div>
+        <p>No activity logs yet</p>
     </div>
 
     <script src="popup.js"></script>
