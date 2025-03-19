@@ -28,16 +28,49 @@ function extractPostId(element) {
     return 'unknown_post_id';
 }
 
-// Function to extract profile ID from URL
+// Function to extract profile ID and info from LinkedIn company page
 function extractProfileId() {
+    // Check if we're on a company page
     const urlMatch = window.location.href.match(/linkedin\.com\/company\/([^/]+)/);
-    return urlMatch ? urlMatch[1] : null;
+    if (!urlMatch) {
+        console.log('LinkedIn Activity Logger: Not on a company page');
+        return null;
+    }
+
+    // Get company name from page
+    const companyName = document.querySelector('h1.org-top-card-summary__title')?.textContent.trim() || 
+                       document.querySelector('.org-top-card-summary__title')?.textContent.trim() ||
+                       'Unknown Company';
+    
+    // Get company ID from URL
+    const companyId = urlMatch[1];
+    
+    console.log(`LinkedIn Activity Logger: Detected company "${companyName}" (${companyId})`);
+    return companyId;
+}
+
+// Function to check if we're on a company posts/content page
+function isCompanyContentPage() {
+    return window.location.href.includes('/posts/') || 
+           window.location.href.includes('/content/') ||
+           window.location.href.includes('/updates/') ||
+           document.querySelector('.org-updates-content') !== null;
 }
 
 // Function to send events to background script
 function sendEvent(type, data) {
     try {
         const profileId = extractProfileId();
+        if (!profileId) {
+            console.log('LinkedIn Activity Logger: Please navigate to a LinkedIn company page to start tracking');
+            return;
+        }
+
+        if (!isCompanyContentPage()) {
+            console.log('LinkedIn Activity Logger: Navigate to the company\'s posts/content section to track engagement');
+            return;
+        }
+
         chrome.runtime.sendMessage({
             type: type,
             data: {
@@ -48,17 +81,24 @@ function sendEvent(type, data) {
             }
         });
 
-        // If profile ID changes, notify background script
-        if (profileId) {
-            chrome.runtime.sendMessage({
-                type: 'SET_PROFILE',
-                profileId: profileId
-            });
-        }
+        // Notify background script about profile
+        chrome.runtime.sendMessage({
+            type: 'SET_PROFILE',
+            profileId: profileId
+        });
+
+        console.log(`LinkedIn Activity Logger: Tracked ${type.toLowerCase()} for company ${profileId}`);
     } catch (error) {
         console.error('LinkedIn Activity Logger: Error sending event:', error);
     }
 }
+
+// Show initial guidance
+console.log('LinkedIn Activity Logger: To start tracking:');
+console.log('1. Navigate to a LinkedIn company page (e.g., linkedin.com/company/microsoft)');
+console.log('2. Go to the Posts or Content tab');
+console.log('3. Scroll through posts to track impressions');
+console.log('4. Interact with posts to track engagement');
 
 // Set up post impression tracking using Intersection Observer
 function setupPostImpressionTracking() {
