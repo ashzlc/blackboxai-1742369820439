@@ -17,6 +17,55 @@ let allLogs = [];
 let filteredLogs = [];
 let currentProfileId = null;
 
+// Initialize date inputs with default values
+const today = new Date();
+const thirtyDaysAgo = new Date(today);
+thirtyDaysAgo.setDate(today.getDate() - 30);
+
+startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+endDateInput.value = today.toISOString().split('T')[0];
+
+// Function to format date
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+// Function to format large numbers
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+// Function to update monthly summary
+function updateMonthlySummary(logs) {
+    if (!logs || !logs.posts) return;
+
+    const posts = logs.posts;
+    const totalPosts = posts.length;
+    const totalReach = posts.reduce((sum, post) => sum + (post.impressions || 0), 0);
+    const totalEngagements = posts.reduce((sum, post) => 
+        sum + (post.reactions || 0) + (post.comments || 0) + (post.shares || 0), 0);
+    
+    const engagementRate = totalPosts > 0 ? 
+        ((totalEngagements / (totalReach || 1)) * 100).toFixed(2) : 0;
+
+    // Update summary cards
+    document.getElementById('postCount').textContent = totalPosts;
+    document.getElementById('reachCount').textContent = formatNumber(totalReach);
+    document.getElementById('engagementRate').textContent = `${engagementRate}%`;
+
+    // Update stats grid
+    impressionCount.textContent = formatNumber(totalReach);
+    reactionCount.textContent = formatNumber(posts.reduce((sum, post) => sum + (post.reactions || 0), 0));
+    commentCount.textContent = formatNumber(posts.reduce((sum, post) => sum + (post.comments || 0), 0));
+}
+
 // Function to update profile info
 function updateProfileInfo(profileId) {
     const profileDisplay = document.createElement('div');
@@ -34,48 +83,89 @@ function updateProfileInfo(profileId) {
     }
 }
 
-// Initialize date inputs with default values
-const today = new Date();
-const thirtyDaysAgo = new Date(today);
-thirtyDaysAgo.setDate(today.getDate() - 30);
+// Function to render analytics table
+function renderAnalyticsTable(logs) {
+    if (!logs || !logs.posts || logs.posts.length === 0) {
+        logTableBody.innerHTML = '';
+        noDataMessage.classList.remove('hidden');
+        return;
+    }
 
-startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
-endDateInput.value = today.toISOString().split('T')[0];
+    noDataMessage.classList.add('hidden');
+    logTableBody.innerHTML = logs.posts
+        .sort((a, b) => new Date(b.postDate) - new Date(a.postDate))
+        .map(post => `
+            <tr>
+                <td class="date-cell">${formatDate(post.postDate)}</td>
+                <td>${post.postContent || 'Post content unavailable'}</td>
+                <td class="metric-cell">${formatNumber(post.impressions || 0)}</td>
+                <td class="metric-cell">${formatNumber(post.reactions || 0)}</td>
+                <td class="metric-cell">${formatNumber(post.comments || 0)}</td>
+                <td class="metric-cell">${formatNumber(post.shares || 0)}</td>
+            </tr>
+        `)
+        .join('');
 
-// Function to format date
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    updateMonthlySummary(logs);
 }
 
-// Function to filter logs by date range
-function filterLogsByDate(logs, startDate, endDate) {
-    return logs.filter(log => {
-        const logDate = new Date(log.timestamp);
-        return logDate >= startDate && logDate <= new Date(endDate.getTime() + 86400000); // Include end date fully
-    });
-}
-
-// Function to update stats
-function updateStats(logs) {
-    const stats = logs.reduce((acc, log) => {
-        acc[log.type.toLowerCase()] = (acc[log.type.toLowerCase()] || 0) + 1;
-        return acc;
-    }, {});
-
-    impressionCount.textContent = stats.impression || 0;
-    reactionCount.textContent = stats.reaction || 0;
-    commentCount.textContent = stats.comment || 0;
-}
-
-// Function to get badge class based on type
-function getBadgeClass(type) {
-    const classes = {
-        'IMPRESSION': 'badge-impression',
-        'REACTION': 'badge-reaction',
-        'COMMENT': 'badge-comment'
-    };
-    return classes[type] || '';
+// Function to load and display logs
+function loadLogs() {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({ type: 'GET_LOGS' }, response => {
+            if (chrome.runtime.lastError) {
+                console.error('Error fetching logs:', chrome.runtime.lastError);
+                return;
+            }
+            allLogs = response.logs || [];
+            currentProfileId = response.currentProfileId;
+            updateProfileInfo(currentProfileId);
+            renderAnalyticsTable(allLogs);
+        });
+    } else {
+        // Demo data for preview
+        const demoData = {
+            companyId: 'demo-company',
+            companyName: 'Demo Company',
+            posts: [
+                {
+                    postId: 'post1',
+                    postDate: new Date().toISOString(),
+                    postContent: 'Exciting news! We just launched our new product.',
+                    impressions: 15000,
+                    reactions: 450,
+                    comments: 48,
+                    shares: 120,
+                    url: 'https://linkedin.com/company/demo/posts/1'
+                },
+                {
+                    postId: 'post2',
+                    postDate: new Date(Date.now() - 86400000).toISOString(),
+                    postContent: 'Join us at our upcoming webinar!',
+                    impressions: 8500,
+                    reactions: 230,
+                    comments: 25,
+                    shares: 45,
+                    url: 'https://linkedin.com/company/demo/posts/2'
+                },
+                {
+                    postId: 'post3',
+                    postDate: new Date(Date.now() - 172800000).toISOString(),
+                    postContent: 'Meet our amazing team members.',
+                    impressions: 12000,
+                    reactions: 380,
+                    comments: 32,
+                    shares: 78,
+                    url: 'https://linkedin.com/company/demo/posts/3'
+                }
+            ]
+        };
+        
+        allLogs = demoData;
+        currentProfileId = demoData.companyId;
+        updateProfileInfo(currentProfileId);
+        renderAnalyticsTable(demoData);
+    }
 }
 
 // Function to apply date filter
@@ -88,8 +178,17 @@ function applyDateFilter() {
         return;
     }
 
-    filteredLogs = filterLogsByDate(allLogs, startDate, endDate);
-    renderLogs(filteredLogs);
+    const filteredPosts = allLogs.posts?.filter(post => {
+        const postDate = new Date(post.postDate);
+        return postDate >= startDate && postDate <= new Date(endDate.getTime() + 86400000);
+    });
+
+    filteredLogs = {
+        ...allLogs,
+        posts: filteredPosts || []
+    };
+
+    renderAnalyticsTable(filteredLogs);
 }
 
 // Function to reset date filter
@@ -99,69 +198,19 @@ function resetDateFilter() {
     applyDateFilter();
 }
 
-// Function to render logs in the table
-function renderLogs(logs) {
-    if (!logs || logs.length === 0) {
-        logTableBody.innerHTML = '';
-        noDataMessage.classList.remove('hidden');
-        return;
-    }
-
-    noDataMessage.classList.add('hidden');
-    logTableBody.innerHTML = logs
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .map(log => {
-            const badgeClass = getBadgeClass(log.type);
-            return `
-                <tr>
-                    <td>
-                        <span class="badge ${badgeClass}">
-                            ${log.type}
-                        </span>
-                    </td>
-                    <td>
-                        ${formatDate(log.timestamp)}
-                    </td>
-                    <td>
-                        ${formatLogDetails(log)}
-                    </td>
-                </tr>
-            `;
-        })
-        .join('');
-
-    updateStats(logs);
-}
-
-// Function to format log details based on type
-function formatLogDetails(log) {
-    const details = log.details || {};
-    const postId = details.postId || 'unknown';
-    
-    switch (log.type) {
-        case 'IMPRESSION':
-            return `Post ${postId} viewed`;
-        case 'REACTION':
-            return `Reacted to post ${postId}${details.reactionType ? ` with ${details.reactionType}` : ''}`;
-        case 'COMMENT':
-            const commentText = details.commentText || '';
-            const truncatedText = commentText.length > 50 ? 
-                `${commentText.substring(0, 47)}...` : commentText;
-            return `Commented on post ${postId}: "${truncatedText}"`;
-        default:
-            return `Action on post ${postId}`;
-    }
-}
-
-// Function to convert logs to CSV
+// Function to convert analytics to CSV
 function convertToCSV(logs) {
-    const headers = ['Type', 'Timestamp', 'Post ID', 'Details', 'URL'];
-    const rows = logs.map(log => [
-        log.type,
-        log.timestamp,
-        log.details?.postId || '',
-        JSON.stringify(log.details || {}).replace(/"/g, '""'),
-        log.details?.url || ''
+    if (!logs || !logs.posts) return '';
+
+    const headers = ['Date', 'Content', 'Impressions', 'Reactions', 'Comments', 'Shares', 'URL'];
+    const rows = logs.posts.map(post => [
+        post.postDate,
+        post.postContent?.replace(/"/g, '""') || '',
+        post.impressions || 0,
+        post.reactions || 0,
+        post.comments || 0,
+        post.shares || 0,
+        post.url || ''
     ]);
 
     return [headers, ...rows]
@@ -170,56 +219,16 @@ function convertToCSV(logs) {
 }
 
 // Function to download CSV
-function downloadCSV(logs) {
+function downloadCSV(logs, filename = 'linkedin_analytics.csv') {
     const csv = convertToCSV(logs);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `linkedin-activity-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Function to load and display logs
-function loadLogs() {
-    // Check if running in extension context
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({ type: 'GET_LOGS' }, response => {
-            if (chrome.runtime.lastError) {
-                console.error('Error fetching logs:', chrome.runtime.lastError);
-                return;
-            }
-            allLogs = response.logs || [];
-            currentProfileId = response.currentProfileId;
-            updateProfileInfo(currentProfileId);
-            applyDateFilter();
-        });
-    } else {
-        // Demo data for preview
-        allLogs = [
-            {
-                type: 'IMPRESSION',
-                timestamp: new Date().toISOString(),
-                details: { postId: 'demo1', url: 'https://linkedin.com/post/1' }
-            },
-            {
-                type: 'REACTION',
-                timestamp: new Date(Date.now() - 86400000).toISOString(),
-                details: { postId: 'demo2', url: 'https://linkedin.com/post/2', reactionType: 'LIKE' }
-            },
-            {
-                type: 'COMMENT',
-                timestamp: new Date(Date.now() - 172800000).toISOString(),
-                details: { postId: 'demo3', url: 'https://linkedin.com/post/3', commentText: 'Great post!' }
-            }
-        ];
-        currentProfileId = 'demo-profile';
-        updateProfileInfo(currentProfileId);
-        applyDateFilter();
-    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // Event Listeners
@@ -227,30 +236,6 @@ document.addEventListener('DOMContentLoaded', loadLogs);
 applyDateRange.addEventListener('click', applyDateFilter);
 resetDateRange.addEventListener('click', resetDateFilter);
 
-// Add styles for profile info
-const style = document.createElement('style');
-style.textContent = `
-    .profile-info {
-        background-color: #f3f4f6;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-top: 8px;
-        font-size: 14px;
-    }
-    
-    .profile-label {
-        color: #6b7280;
-        margin-right: 8px;
-    }
-    
-    .profile-value {
-        color: #1f2937;
-        font-weight: 500;
-    }
-`;
-document.head.appendChild(style);
-
-// Add event listeners for date inputs
 startDateInput.addEventListener('change', () => {
     if (startDateInput.value && endDateInput.value) {
         applyDateFilter();
@@ -268,8 +253,8 @@ refreshBtn.addEventListener('click', () => {
     refreshBtn.style.transition = 'transform 1s';
     loadLogs();
     setTimeout(() => {
-        refreshBtn.style.transform = '';
-        refreshBtn.style.transition = '';
+        refreshBtn.style.transform = 'none';
+        refreshBtn.style.transition = 'none';
     }, 1000);
 });
 
@@ -286,11 +271,15 @@ clearBtn.addEventListener('click', () => {
 });
 
 downloadBtn.addEventListener('click', () => {
-    if (filteredLogs && filteredLogs.length > 0) {
+    if (filteredLogs && filteredLogs.posts && filteredLogs.posts.length > 0) {
         if (typeof chrome !== 'undefined' && chrome.runtime) {
-            downloadCSV(filteredLogs);
+            const dateRange = `${startDateInput.value}_to_${endDateInput.value}`;
+            const filename = `linkedin_analytics_${dateRange}.csv`;
+            downloadCSV(filteredLogs, filename);
         } else {
             alert('CSV download is only available in the extension.');
         }
+    } else {
+        alert('No data available for the selected date range.');
     }
 });
