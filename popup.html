@@ -76,6 +76,41 @@
             background-color: #d1d5db;
         }
 
+        /* Instructions panel styles */
+        .instructions-panel {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .instructions-panel h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 12px 0;
+        }
+
+        .instructions-panel ol {
+            margin: 0;
+            padding-left: 24px;
+        }
+
+        .instructions-panel li {
+            color: #4b5563;
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .instructions-panel .note {
+            margin: 12px 0 0 0;
+            font-size: 14px;
+            color: #6b7280;
+            font-style: italic;
+        }
+
         /* Base styles */
         body {
             width: 600px;
@@ -283,6 +318,17 @@
                 <span class="icon-trash"></span>
             </button>
         </div>
+    </div>
+
+    <div id="instructionsPanel" class="instructions-panel">
+        <h2>How to Track Business Profiles:</h2>
+        <ol>
+            <li>Navigate to a LinkedIn company page (e.g., linkedin.com/company/microsoft)</li>
+            <li>Go to the company's Posts or Content tab</li>
+            <li>Scroll through posts to track impressions</li>
+            <li>Interact with posts to track engagement</li>
+        </ol>
+        <p class="note">Note: Data will be collected automatically as you browse company pages and interact with posts.</p>
     </div>
 
     <div class="stats-grid">
