@@ -183,12 +183,46 @@
             background-color: #fecaca;
         }
 
-        /* Stats grid */
-        .stats-grid {
+        /* Summary section styles */
+        .summary-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 16px 0;
+        }
+
+        .summary-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 16px;
-            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background-color: #f8fafc;
+            padding: 16px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: #4b5563;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0a66c2;
+            margin: 0;
         }
 
         .stat-card {
@@ -212,7 +246,7 @@
             margin: 0;
         }
 
-        /* Table styles */
+        /* Enhanced table styles */
         .table-container {
             background-color: white;
             border-radius: 8px;
@@ -220,9 +254,45 @@
             margin-top: 16px;
         }
 
-        table {
+        .post-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .post-table th {
+            background-color: #f8fafc;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #4b5563;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .post-table td {
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .post-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .metric-cell {
+            font-weight: 500;
+            color: #0a66c2;
+        }
+
+        .date-cell {
+            color: #6b7280;
+            font-size: 13px;
         }
 
         th {
@@ -321,14 +391,32 @@
     </div>
 
     <div id="instructionsPanel" class="instructions-panel">
-        <h2>How to Track Business Profiles:</h2>
+        <h2>Company Analytics Collection:</h2>
         <ol>
-            <li>Navigate to a LinkedIn company page (e.g., linkedin.com/company/microsoft)</li>
-            <li>Go to the company's Posts or Content tab</li>
-            <li>Scroll through posts to track impressions</li>
-            <li>Interact with posts to track engagement</li>
+            <li>Log in to LinkedIn with admin access</li>
+            <li>Go to your company page</li>
+            <li>Navigate to Analytics or Content section</li>
+            <li>Data will be collected automatically</li>
         </ol>
-        <p class="note">Note: Data will be collected automatically as you browse company pages and interact with posts.</p>
+        <p class="note">Note: Monthly reports can be exported using the date range selector below.</p>
+    </div>
+
+    <div class="summary-section">
+        <h2>Monthly Performance Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Total Posts</div>
+                <p id="postCount" class="summary-value">0</p>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total Reach</div>
+                <p id="reachCount" class="summary-value">0</p>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Avg. Engagement Rate</div>
+                <p id="engagementRate" class="summary-value">0%</p>
+            </div>
+        </div>
     </div>
 
     <div class="stats-grid">
