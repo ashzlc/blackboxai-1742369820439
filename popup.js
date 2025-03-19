@@ -7,11 +7,53 @@ const refreshBtn = document.getElementById('refreshBtn');
 const impressionCount = document.getElementById('impressionCount');
 const reactionCount = document.getElementById('reactionCount');
 const commentCount = document.getElementById('commentCount');
+const startDateInput = document.getElementById('startDate');
+const endDateInput = document.getElementById('endDate');
+const applyDateRange = document.getElementById('applyDateRange');
+const resetDateRange = document.getElementById('resetDateRange');
+
+// Store the full logs and profile info
+let allLogs = [];
+let filteredLogs = [];
+let currentProfileId = null;
+
+// Function to update profile info
+function updateProfileInfo(profileId) {
+    const profileDisplay = document.createElement('div');
+    profileDisplay.className = 'profile-info';
+    profileDisplay.innerHTML = `
+        <span class="profile-label">Current Profile:</span>
+        <span class="profile-value">${profileId || 'No profile selected'}</span>
+    `;
+    
+    const existingInfo = document.querySelector('.profile-info');
+    if (existingInfo) {
+        existingInfo.replaceWith(profileDisplay);
+    } else {
+        document.querySelector('.header').appendChild(profileDisplay);
+    }
+}
+
+// Initialize date inputs with default values
+const today = new Date();
+const thirtyDaysAgo = new Date(today);
+thirtyDaysAgo.setDate(today.getDate() - 30);
+
+startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+endDateInput.value = today.toISOString().split('T')[0];
 
 // Function to format date
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString();
+}
+
+// Function to filter logs by date range
+function filterLogsByDate(logs, startDate, endDate) {
+    return logs.filter(log => {
+        const logDate = new Date(log.timestamp);
+        return logDate >= startDate && logDate <= new Date(endDate.getTime() + 86400000); // Include end date fully
+    });
 }
 
 // Function to update stats
@@ -34,6 +76,27 @@ function getBadgeClass(type) {
         'COMMENT': 'badge-comment'
     };
     return classes[type] || '';
+}
+
+// Function to apply date filter
+function applyDateFilter() {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    if (startDate > endDate) {
+        alert('Start date cannot be after end date');
+        return;
+    }
+
+    filteredLogs = filterLogsByDate(allLogs, startDate, endDate);
+    renderLogs(filteredLogs);
+}
+
+// Function to reset date filter
+function resetDateFilter() {
+    startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+    endDateInput.value = today.toISOString().split('T')[0];
+    applyDateFilter();
 }
 
 // Function to render logs in the table
@@ -122,17 +185,83 @@ function downloadCSV(logs) {
 
 // Function to load and display logs
 function loadLogs() {
-    chrome.runtime.sendMessage({ type: 'GET_LOGS' }, response => {
-        if (chrome.runtime.lastError) {
-            console.error('Error fetching logs:', chrome.runtime.lastError);
-            return;
-        }
-        renderLogs(response.logs || []);
-    });
+    // Check if running in extension context
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({ type: 'GET_LOGS' }, response => {
+            if (chrome.runtime.lastError) {
+                console.error('Error fetching logs:', chrome.runtime.lastError);
+                return;
+            }
+            allLogs = response.logs || [];
+            currentProfileId = response.currentProfileId;
+            updateProfileInfo(currentProfileId);
+            applyDateFilter();
+        });
+    } else {
+        // Demo data for preview
+        allLogs = [
+            {
+                type: 'IMPRESSION',
+                timestamp: new Date().toISOString(),
+                details: { postId: 'demo1', url: 'https://linkedin.com/post/1' }
+            },
+            {
+                type: 'REACTION',
+                timestamp: new Date(Date.now() - 86400000).toISOString(),
+                details: { postId: 'demo2', url: 'https://linkedin.com/post/2', reactionType: 'LIKE' }
+            },
+            {
+                type: 'COMMENT',
+                timestamp: new Date(Date.now() - 172800000).toISOString(),
+                details: { postId: 'demo3', url: 'https://linkedin.com/post/3', commentText: 'Great post!' }
+            }
+        ];
+        currentProfileId = 'demo-profile';
+        updateProfileInfo(currentProfileId);
+        applyDateFilter();
+    }
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', loadLogs);
+applyDateRange.addEventListener('click', applyDateFilter);
+resetDateRange.addEventListener('click', resetDateFilter);
+
+// Add styles for profile info
+const style = document.createElement('style');
+style.textContent = `
+    .profile-info {
+        background-color: #f3f4f6;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-top: 8px;
+        font-size: 14px;
+    }
+    
+    .profile-label {
+        color: #6b7280;
+        margin-right: 8px;
+    }
+    
+    .profile-value {
+        color: #1f2937;
+        font-weight: 500;
+    }
+`;
+document.head.appendChild(style);
+
+// Add event listeners for date inputs
+startDateInput.addEventListener('change', () => {
+    if (startDateInput.value && endDateInput.value) {
+        applyDateFilter();
+    }
+});
+
+endDateInput.addEventListener('change', () => {
+    if (startDateInput.value && endDateInput.value) {
+        applyDateFilter();
+    }
+});
 
 refreshBtn.addEventListener('click', () => {
     refreshBtn.style.transform = 'rotate(360deg)';
@@ -157,9 +286,11 @@ clearBtn.addEventListener('click', () => {
 });
 
 downloadBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'GET_LOGS' }, response => {
-        if (response.logs && response.logs.length > 0) {
-            downloadCSV(response.logs);
+    if (filteredLogs && filteredLogs.length > 0) {
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            downloadCSV(filteredLogs);
+        } else {
+            alert('CSV download is only available in the extension.');
         }
-    });
+    }
 });
