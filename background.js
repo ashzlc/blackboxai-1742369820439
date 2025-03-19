@@ -104,7 +104,41 @@ function isValidMessage(message) {
     return message && 
            typeof message === 'object' && 
            typeof message.type === 'string' &&
-           ['IMPRESSION', 'REACTION', 'COMMENT', 'GET_LOGS', 'CLEAR_LOGS', 'SET_PROFILE'].includes(message.type);
+           ['ANALYTICS_DATA', 'GET_LOGS', 'CLEAR_LOGS', 'SET_PROFILE'].includes(message.type);
+}
+
+// Helper function to merge analytics data
+function mergeAnalyticsData(existingData, newData) {
+    if (!existingData || !existingData.posts) {
+        return newData;
+    }
+
+    // Create a map of existing posts by URL
+    const postMap = new Map(existingData.posts.map(post => [post.url, post]));
+
+    // Update or add new posts
+    newData.posts.forEach(post => {
+        if (postMap.has(post.url)) {
+            // Update existing post with new metrics
+            const existingPost = postMap.get(post.url);
+            postMap.set(post.url, {
+                ...existingPost,
+                impressions: Math.max(existingPost.impressions || 0, post.impressions || 0),
+                reactions: Math.max(existingPost.reactions || 0, post.reactions || 0),
+                comments: Math.max(existingPost.comments || 0, post.comments || 0),
+                shares: Math.max(existingPost.shares || 0, post.shares || 0)
+            });
+        } else {
+            // Add new post
+            postMap.set(post.url, post);
+        }
+    });
+
+    // Convert map back to array
+    return {
+        ...newData,
+        posts: Array.from(postMap.values())
+    };
 }
 
 // Listen for messages from content script and popup
@@ -117,14 +151,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     try {
         switch (message.type) {
-            case 'IMPRESSION':
-            case 'REACTION':
-            case 'COMMENT':
-                // Handle activity logging
-                addLogEntry(message.type, message.data)
-                    .then(() => sendResponse({ success: true }))
+            case 'ANALYTICS_DATA':
+                // Handle analytics data
+                if (!currentProfileId) {
+                    setCurrentProfile(message.data.companyId);
+                }
+                
+                const currentData = getCurrentProfileLogs();
+                const updatedData = mergeAnalyticsData(currentData, message.data);
+                activityLogs.set(currentProfileId, updatedData);
+                
+                saveLogs()
+                    .then(() => {
+                        console.log(`Updated analytics for ${message.data.companyName}`);
+                        sendResponse({ success: true });
+                    })
                     .catch(error => sendResponse({ success: false, error: error.message }));
-                return true; // Will respond asynchronously
+                return true;
 
             case 'SET_PROFILE':
                 // Set current profile
