@@ -28,225 +28,127 @@ function extractPostId(element) {
     return 'unknown_post_id';
 }
 
-// Function to extract profile ID and info from LinkedIn company page
-function extractProfileId() {
-    // Check if we're on a company page
-    const urlMatch = window.location.href.match(/linkedin\.com\/company\/([^/]+)/);
-    if (!urlMatch) {
-        console.log('LinkedIn Activity Logger: Not on a company page');
+// Function to extract analytics data from LinkedIn company admin page
+function extractAnalyticsData() {
+    // Check if we're on the company admin analytics page
+    const isAnalyticsPage = window.location.href.includes('/admin/analytics/') ||
+                           window.location.href.includes('/organization/');
+    
+    if (!isAnalyticsPage) {
+        console.log('LinkedIn Activity Logger: Please navigate to your company page analytics section');
         return null;
     }
 
-    // Get company name from page
-    const companyName = document.querySelector('h1.org-top-card-summary__title')?.textContent.trim() || 
-                       document.querySelector('.org-top-card-summary__title')?.textContent.trim() ||
-                       'Unknown Company';
-    
-    // Get company ID from URL
-    const companyId = urlMatch[1];
-    
-    console.log(`LinkedIn Activity Logger: Detected company "${companyName}" (${companyId})`);
-    return companyId;
+    // Get post analytics data
+    const posts = document.querySelectorAll('.analytics-post-item, .content-analytics-item');
+    const analyticsData = [];
+
+    posts.forEach(post => {
+        try {
+            // Extract post data
+            const postData = {
+                postId: post.getAttribute('data-post-id') || post.getAttribute('data-urn') || 'unknown',
+                postDate: post.querySelector('.post-timestamp, .content-date')?.textContent.trim(),
+                postContent: post.querySelector('.post-content, .content-title')?.textContent.trim(),
+                impressions: extractMetric(post, ['impressions', 'views', 'reach']),
+                reactions: extractMetric(post, ['reactions', 'likes']),
+                comments: extractMetric(post, ['comments']),
+                shares: extractMetric(post, ['shares', 'reposts']),
+                url: post.querySelector('a[href*="/posts/"]')?.href || window.location.href
+            };
+
+            analyticsData.push(postData);
+        } catch (error) {
+            console.error('Error extracting post data:', error);
+        }
+    });
+
+    return analyticsData;
 }
 
-// Function to check if we're on a company posts/content page
-function isCompanyContentPage() {
-    return window.location.href.includes('/posts/') || 
-           window.location.href.includes('/content/') ||
-           window.location.href.includes('/updates/') ||
-           document.querySelector('.org-updates-content') !== null;
+// Helper function to extract numeric metrics
+function extractMetric(element, possibleLabels) {
+    for (const label of possibleLabels) {
+        const metric = element.querySelector(`[aria-label*="${label}"], [title*="${label}"], .analytics-${label}`)
+            ?.textContent.trim().replace(/[^0-9]/g, '');
+        if (metric) return parseInt(metric, 10);
+    }
+    return 0;
 }
 
-// Function to send events to background script
-function sendEvent(type, data) {
+// Function to extract company info
+function extractCompanyInfo() {
+    const companyName = document.querySelector('.org-top-card-summary__title, .organization-name')?.textContent.trim() || 'Unknown Company';
+    const urlMatch = window.location.href.match(/linkedin\.com\/company\/([^/]+)/);
+    const companyId = urlMatch ? urlMatch[1] : 'unknown';
+    
+    return { companyId, companyName };
+}
+
+// Function to collect and send analytics data
+function collectAnalytics() {
     try {
-        const profileId = extractProfileId();
-        if (!profileId) {
-            console.log('LinkedIn Activity Logger: Please navigate to a LinkedIn company page to start tracking');
-            return;
-        }
+        const analyticsData = extractAnalyticsData();
+        if (!analyticsData) return;
 
-        if (!isCompanyContentPage()) {
-            console.log('LinkedIn Activity Logger: Navigate to the company\'s posts/content section to track engagement');
-            return;
-        }
-
+        const { companyId, companyName } = extractCompanyInfo();
+        
+        // Send data to background script
         chrome.runtime.sendMessage({
-            type: type,
+            type: 'ANALYTICS_DATA',
             data: {
-                ...data,
-                url: window.location.href,
+                companyId,
+                companyName,
                 timestamp: new Date().toISOString(),
-                profileId: profileId
+                posts: analyticsData
             }
         });
 
-        // Notify background script about profile
+        // Set current profile
         chrome.runtime.sendMessage({
             type: 'SET_PROFILE',
-            profileId: profileId
+            profileId: companyId
         });
 
-        console.log(`LinkedIn Activity Logger: Tracked ${type.toLowerCase()} for company ${profileId}`);
+        console.log(`LinkedIn Activity Logger: Collected analytics for "${companyName}"`);
+        console.log(`Total posts analyzed: ${analyticsData.length}`);
     } catch (error) {
-        console.error('LinkedIn Activity Logger: Error sending event:', error);
+        console.error('LinkedIn Activity Logger: Error collecting analytics:', error);
     }
 }
 
 // Show initial guidance
-console.log('LinkedIn Activity Logger: To start tracking:');
-console.log('1. Navigate to a LinkedIn company page (e.g., linkedin.com/company/microsoft)');
-console.log('2. Go to the Posts or Content tab');
-console.log('3. Scroll through posts to track impressions');
-console.log('4. Interact with posts to track engagement');
+console.log('LinkedIn Activity Logger: To collect company analytics:');
+console.log('1. Log in to LinkedIn with admin access');
+console.log('2. Go to your company page');
+console.log('3. Navigate to Analytics or Content section');
+console.log('4. Data will be collected automatically');
 
-// Set up post impression tracking using Intersection Observer
-function setupPostImpressionTracking() {
-    const observedPosts = new Set();
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const postElement = entry.target;
-                const postId = extractPostId(postElement);
-                
-                // Only track each post once
-                if (!observedPosts.has(postId)) {
-                    observedPosts.add(postId);
-                    sendEvent('IMPRESSION', { postId });
-                    
-                    // Stop observing this post
-                    observer.unobserve(postElement);
-                }
-            }
-        });
-    }, {
-        threshold: 0.5, // Post must be 50% visible
-        rootMargin: '0px' // No margin
-    });
+// Set up analytics collection
+function initializeAnalyticsTracking() {
+    // Collect analytics when page loads
+    collectAnalytics();
 
-    // Function to find and observe posts
-    const findAndObservePosts = debounce(() => {
-        // LinkedIn post selectors
-        const postSelectors = [
-            'div.feed-shared-update-v2',
-            'div[data-urn]',
-            'div[data-id]',
-            'div.feed-shared-article',
-            'div.feed-shared-external-video',
-            'div.feed-shared-image',
-            'div.feed-shared-linkedin-video',
-            'div.feed-shared-post',
-            'div.feed-shared-text'
-        ];
+    // Set up periodic collection
+    setInterval(collectAnalytics, 30000); // Check every 30 seconds
 
-        const posts = document.querySelectorAll(postSelectors.join(','));
-        posts.forEach(post => {
-            const postId = extractPostId(post);
-            if (!observedPosts.has(postId)) {
-                observer.observe(post);
-            }
-        });
-    }, 1000);
-
-    // Initial observation
-    findAndObservePosts();
-
-    // Set up MutationObserver to watch for new posts
-    const mutationObserver = new MutationObserver(findAndObservePosts);
-    mutationObserver.observe(document.body, {
+    // Set up MutationObserver to detect content changes
+    const observer = new MutationObserver(debounce(collectAnalytics, 1000));
+    observer.observe(document.body, {
         childList: true,
         subtree: true
     });
 }
 
-// Track reactions
-function setupReactionTracking() {
-    document.addEventListener('click', (e) => {
-        // LinkedIn reaction selectors
-        const reactionSelectors = [
-            'button.react-button__trigger',
-            'button.reactions-react-button',
-            'button[data-control-name="react_button"]',
-            'li.reactions-menu-item'
-        ];
-
-        const reactionButton = e.target.closest(reactionSelectors.join(','));
-        if (reactionButton) {
-            const postElement = reactionButton.closest([
-                'div.feed-shared-update-v2',
-                'div[data-urn]',
-                'div[data-id]'
-            ].join(','));
-
-            if (postElement) {
-                const postId = extractPostId(postElement);
-                const reactionType = reactionButton.getAttribute('aria-label') || 
-                                   reactionButton.textContent.trim() ||
-                                   'unknown_reaction';
-                
-                sendEvent('REACTION', {
-                    postId,
-                    reactionType
-                });
-            }
-        }
-    });
-}
-
-// Track comments
-function setupCommentTracking() {
-    // Track comment submissions
-    document.addEventListener('click', (e) => {
-        // LinkedIn comment submit button selectors
-        const commentSubmitSelectors = [
-            'button.comments-comment-box__submit-button',
-            'button[data-control-name="comment_submit"]'
-        ];
-
-        const submitButton = e.target.closest(commentSubmitSelectors.join(','));
-        if (submitButton) {
-            const commentBox = submitButton.closest('.comments-comment-box');
-            if (commentBox) {
-                const postElement = commentBox.closest([
-                    'div.feed-shared-update-v2',
-                    'div[data-urn]',
-                    'div[data-id]'
-                ].join(','));
-
-                if (postElement) {
-                    const postId = extractPostId(postElement);
-                    const commentText = commentBox.querySelector('textarea, [contenteditable="true"]')?.value || 
-                                     commentBox.querySelector('textarea, [contenteditable="true"]')?.textContent || 
-                                     '';
-
-                    sendEvent('COMMENT', {
-                        postId,
-                        commentText: commentText.trim()
-                    });
-                }
-            }
-        }
-    });
-}
-
-// Initialize all tracking functions
+// Initialize tracking
 function initializeTracking() {
     try {
-        // Wait for the page to be fully loaded
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                setupPostImpressionTracking();
-                setupReactionTracking();
-                setupCommentTracking();
-            });
+            document.addEventListener('DOMContentLoaded', initializeAnalyticsTracking);
         } else {
-            setupPostImpressionTracking();
-            setupReactionTracking();
-            setupCommentTracking();
+            initializeAnalyticsTracking();
         }
-        
-        console.log('LinkedIn Activity Logger: Tracking initialized successfully');
+        console.log('LinkedIn Activity Logger: Analytics tracking initialized');
     } catch (error) {
         console.error('LinkedIn Activity Logger: Error initializing tracking:', error);
     }
