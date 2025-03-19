@@ -11,7 +11,7 @@
             overflow-y: auto;
             margin: 0;
             padding: 16px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
             background-color: #f9fafb;
         }
 
@@ -39,7 +39,7 @@
         /* Button styles */
         .btn {
             padding: 8px 16px;
-            border-radius: 8px;
+            border-radius: 6px;
             border: none;
             cursor: pointer;
             font-weight: 500;
@@ -47,12 +47,24 @@
         }
 
         .btn-primary {
-            background-color: #2563eb;
+            background-color: #0a66c2;
             color: white;
         }
 
         .btn-primary:hover {
-            background-color: #1d4ed8;
+            background-color: #004182;
+        }
+
+        .btn-icon {
+            padding: 8px;
+            background-color: #f3f4f6;
+            border-radius: 6px;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            background-color: #e5e7eb;
         }
 
         .btn-danger {
@@ -62,11 +74,6 @@
 
         .btn-danger:hover {
             background-color: #fecaca;
-        }
-
-        .btn-icon {
-            padding: 8px;
-            margin-left: 8px;
         }
 
         /* Stats grid */
@@ -80,30 +87,21 @@
         .stat-card {
             padding: 16px;
             border-radius: 8px;
-            text-align: left;
-        }
-
-        .stat-card.impressions {
-            background-color: #dbeafe;
-        }
-
-        .stat-card.reactions {
-            background-color: #dcfce7;
-        }
-
-        .stat-card.comments {
-            background-color: #f3e8ff;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .stat-label {
             font-size: 14px;
             font-weight: 600;
+            color: #374151;
             margin-bottom: 4px;
         }
 
         .stat-value {
             font-size: 24px;
             font-weight: bold;
+            color: #0a66c2;
             margin: 0;
         }
 
@@ -127,19 +125,27 @@
             text-transform: uppercase;
             color: #6b7280;
             border-bottom: 1px solid #e5e7eb;
+            background-color: #f9fafb;
         }
 
         td {
             padding: 12px 16px;
             border-bottom: 1px solid #e5e7eb;
             font-size: 14px;
+            color: #374151;
         }
 
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badge styles */
         .badge {
             padding: 4px 8px;
             border-radius: 9999px;
             font-size: 12px;
             font-weight: 500;
+            display: inline-block;
         }
 
         .badge-impression {
@@ -157,42 +163,37 @@
             color: #6b21a8;
         }
 
-        /* No data message */
-        .no-data {
-            text-align: center;
-            padding: 32px;
-            color: #6b7280;
-        }
-
-        .no-data-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
-
-        /* Icons */
-        .icon {
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-            vertical-align: middle;
-        }
-
         /* Download button container */
         .download-container {
             margin-bottom: 24px;
         }
 
-        .download-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+        /* No data message */
+        .no-data {
+            text-align: center;
+            padding: 32px;
+            color: #6b7280;
+            background-color: white;
+            border-radius: 8px;
+            margin-top: 16px;
         }
 
         /* Utility classes */
         .hidden {
             display: none;
+        }
+
+        /* Button icons */
+        .icon-refresh::before {
+            content: "↻";
+        }
+
+        .icon-trash::before {
+            content: "🗑";
+        }
+
+        .icon-download::before {
+            content: "⬇";
         }
     </style>
 </head>
@@ -203,29 +204,33 @@
             <p class="subtitle">Track your LinkedIn interactions</p>
         </div>
         <div>
-            <button id="refreshBtn" class="btn btn-icon" title="Refresh">↻</button>
-            <button id="clearBtn" class="btn btn-icon btn-danger" title="Clear logs">🗑</button>
+            <button id="refreshBtn" class="btn btn-icon" title="Refresh">
+                <span class="icon-refresh"></span>
+            </button>
+            <button id="clearBtn" class="btn btn-icon btn-danger" title="Clear logs">
+                <span class="icon-trash"></span>
+            </button>
         </div>
     </div>
 
     <div class="stats-grid">
-        <div class="stat-card impressions">
+        <div class="stat-card">
             <div class="stat-label">Impressions</div>
             <p id="impressionCount" class="stat-value">0</p>
         </div>
-        <div class="stat-card reactions">
+        <div class="stat-card">
             <div class="stat-label">Reactions</div>
             <p id="reactionCount" class="stat-value">0</p>
         </div>
-        <div class="stat-card comments">
+        <div class="stat-card">
             <div class="stat-label">Comments</div>
             <p id="commentCount" class="stat-value">0</p>
         </div>
     </div>
 
     <div class="download-container">
-        <button id="downloadBtn" class="btn btn-primary download-btn">
-            ⬇️ Download CSV
+        <button id="downloadBtn" class="btn btn-primary" style="width: 100%;">
+            <span class="icon-download"></span> Download CSV
         </button>
     </div>
 
@@ -245,7 +250,6 @@
     </div>
 
     <div id="noDataMessage" class="no-data hidden">
-        <div class="no-data-icon">📊</div>
         <p>No activity logs yet</p>
     </div>
 
