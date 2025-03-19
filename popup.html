@@ -4,6 +4,78 @@
     <meta charset="UTF-8">
     <title>LinkedIn Activity Logger</title>
     <style>
+        /* Filter section styles */
+        .filters-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .date-range-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .date-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .date-field label {
+            font-size: 14px;
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .date-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #374151;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
         /* Base styles */
         body {
             width: 600px;
@@ -225,6 +297,26 @@
         <div class="stat-card">
             <div class="stat-label">Comments</div>
             <p id="commentCount" class="stat-value">0</p>
+        </div>
+    </div>
+
+    <div class="filters-container">
+        <div class="section-title">Data Filters</div>
+        <div class="date-range-container">
+            <div class="date-inputs">
+                <div class="date-field">
+                    <label for="startDate">From:</label>
+                    <input type="date" id="startDate" class="date-input">
+                </div>
+                <div class="date-field">
+                    <label for="endDate">To:</label>
+                    <input type="date" id="endDate" class="date-input">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button id="applyDateRange" class="btn btn-primary">Apply Filter</button>
+                <button id="resetDateRange" class="btn btn-secondary">Reset</button>
+            </div>
         </div>
     </div>
 
