@@ -1,30 +1,26 @@
 {
-  "manifest_version": 3,
-  "name": "LinkedIn Activity Logger",
-  "version": "1.0",
-  "description": "Track and log LinkedIn page activities including post impressions, reactions, and comments",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
-  "host_permissions": [
-    "https://www.linkedin.com/*"
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdn.tailwindcss.com; object-src 'self'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'"
-  },
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://www.linkedin.com/*"],
-      "js": ["content.js"]
-    }
-  ]
+    "manifest_version": 3,
+    "name": "LinkedIn Activity Logger",
+    "version": "1.0",
+    "description": "Track and log LinkedIn page activities including post impressions, reactions, and comments",
+    "permissions": [
+        "storage",
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://www.linkedin.com/*"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://www.linkedin.com/*"],
+            "js": ["content.js"]
+        }
+    ]
 }
